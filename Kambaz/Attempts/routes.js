@@ -6,43 +6,56 @@ export default function AttemptsRoutes(app, db) {
   const questionsDao = QuestionsDao(db);
 
   const findAttemptsForQuiz = async (req, res) => {
-    const { qid } = req.params;
-    const attempts = await dao.findAttemptsForQuiz(qid);
-    res.json(attempts);
+    try {
+      const { qid } = req.params;
+      const attempts = await dao.findAttemptsForQuiz(qid);
+      res.json(attempts);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   };
 
   const findAttemptsForStudent = async (req, res) => {
-    const { qid } = req.params;
-    const currentUser = req.session["currentUser"];
-    if (!currentUser) {
-      res.sendStatus(401);
-      return;
+    try {
+      const { qid } = req.params;
+      const currentUser = req.session["currentUser"];
+      if (!currentUser) {
+        res.sendStatus(401);
+        return;
+      }
+      const attempts = await dao.findAttemptsForStudent(qid, currentUser._id);
+      res.json(attempts);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-    const attempts = await dao.findAttemptsForStudent(qid, currentUser._id);
-    res.json(attempts);
   };
 
   const getLatestAttempt = async (req, res) => {
-    const { qid } = req.params;
-    const currentUser = req.session["currentUser"];
-    if (!currentUser) {
-      res.sendStatus(401);
-      return;
+    try {
+      const { qid } = req.params;
+      const currentUser = req.session["currentUser"];
+      if (!currentUser) {
+        res.sendStatus(401);
+        return;
+      }
+      const attempt = await dao.getLatestAttempt(qid, currentUser._id);
+      res.json(attempt);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-    const attempt = await dao.getLatestAttempt(qid, currentUser._id);
-    res.json(attempt);
   };
 
   const submitQuizAttempt = async (req, res) => {
-    const { qid } = req.params;
-    const currentUser = req.session["currentUser"];
+    try {
+      const { qid } = req.params;
+      const currentUser = req.session["currentUser"];
 
-    if (!currentUser) {
-      res.sendStatus(401);
-      return;
-    }
+      if (!currentUser) {
+        res.sendStatus(401);
+        return;
+      }
 
-    const { answers } = req.body;
+      const { answers } = req.body;
 
     const questions = await questionsDao.findQuestionsForQuiz(qid);
 
@@ -98,16 +111,19 @@ export default function AttemptsRoutes(app, db) {
       });
     }
 
-    const attempt = await dao.createAttempt({
-      quizId: qid,
-      studentId: currentUser._id,
-      attemptNumber,
-      answers: gradedAnswers,
-      score: totalScore,
-      maxScore,
-    });
+      const attempt = await dao.createAttempt({
+        quizId: qid,
+        studentId: currentUser._id,
+        attemptNumber,
+        answers: gradedAnswers,
+        score: totalScore,
+        maxScore,
+      });
 
-    res.json(attempt);
+      res.json(attempt);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   };
 
   app.get("/api/courses/:cid/quizzes/:qid/attempts", findAttemptsForQuiz);
